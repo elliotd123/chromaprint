@@ -107,7 +107,7 @@ static void ParseOptions(int &argc, char **argv) {
 			g_abs_ts = true;
 		} else if (!strcmp(argv[i], "-raw")) {
 			g_raw = true;
-		} else if (!strcmp(argv[i], "-ignore-errors")) {
+		} else if (!strcmp(argv[i], "-ignore-errors") || !strcmp(argv[i], "-i")) {
 			g_ignore_errors = true;
 		} else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "-version")) {
 			fprintf(stdout, "fpcalc version %s\n", chromaprint_get_version());
