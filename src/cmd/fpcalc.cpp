@@ -27,8 +27,11 @@ static double g_max_duration = 120;
 static double g_max_chunk_duration = 0;
 static bool g_overlap = false;
 static bool g_raw = false;
+static bool g_signed = false;
 static bool g_abs_ts = false;
 static bool g_ignore_errors = false;
+static ChromaprintAlgorithm g_algorithm = CHROMAPRINT_ALGORITHM_DEFAULT;
+
 
 const char *g_help =
 	"Usage: %s [OPTIONS] FILE [FILE...]\n"
@@ -41,9 +44,11 @@ const char *g_help =
 	"  -channels NUM  Set the number of channels in the input audio\n"
 	"  -length SECS   Restrict the duration of the processed input audio (default 120)\n"
 	"  -chunk SECS    Split the input audio into chunks of this duration\n"
+	"  -algorithm NUM Set the algorigthm method (default 2)\n"
 	"  -overlap       Overlap the chunks slightly to make sure audio on the edges is fingerprinted\n"
 	"  -ts            Output UNIX timestamps for chunked results, useful when fingerprinting real-time audio stream\n"
 	"  -raw           Output fingerprints in the uncompressed format\n"
+	"  -signed        Change the uncompressed format from unsigned integers to signed (for pg_acoustid compatibility)\n"
 	"  -json          Print the output in JSON format\n"
 	"  -text          Print the output in text format\n"
 	"  -plain         Print the just the fingerprint in text format\n"
@@ -95,6 +100,15 @@ static void ParseOptions(int &argc, char **argv) {
 				exit(2);
 			}
 			i++;
+        } else if ((!strcmp(argv[i], "-algorithm") || !strcmp(argv[i], "-a")) && i + 1 < argc) {
+            auto value = atoi(argv[i + 1]);
+            if (value >= 1 && value <= 5) {
+                g_algorithm = (ChromaprintAlgorithm)(value - 1);
+            } else {
+                fprintf(stderr, "ERROR: The argument for %s must be 1 - 5\n", argv[i]);
+                exit(2);
+            }
+            i++;
 		} else if (!strcmp(argv[i], "-text")) {
 			g_format = TEXT;
 		} else if (!strcmp(argv[i], "-json")) {
@@ -107,10 +121,21 @@ static void ParseOptions(int &argc, char **argv) {
 			g_abs_ts = true;
 		} else if (!strcmp(argv[i], "-raw")) {
 			g_raw = true;
+<<<<<<< HEAD
 		} else if (!strcmp(argv[i], "-ignore-errors") || !strcmp(argv[i], "-i")) {
+=======
+		} else if (!strcmp(argv[i], "-signed")) {
+			g_signed = true;
+		} else if (!strcmp(argv[i], "-ignore-errors")) {
+>>>>>>> 516e3b31c7fa6e822035ea3b3e31f9c7f51ef4b6
 			g_ignore_errors = true;
 		} else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "-version")) {
-			fprintf(stdout, "fpcalc version %s\n", chromaprint_get_version());
+#if defined(USE_SWRESAMPLE)
+#define RESAMPLE_LIB_IDENT_IDENT LIBSWRESAMPLE_IDENT
+#else
+#define RESAMPLE_LIB_IDENT_IDENT LIBAVRESAMPLE_IDENT
+#endif
+			fprintf(stdout, "fpcalc version %s (FFmpeg %s %s %s)\n", chromaprint_get_version(), LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, RESAMPLE_LIB_IDENT_IDENT);
 			exit(0);
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "-help") || !strcmp(argv[i], "--help")) {
 			fprintf(stdout, g_help, argv[0]);
@@ -163,7 +188,11 @@ void PrintResult(ChromaprintContext *ctx, FFmpegAudioReader &reader, bool first,
 			if (i > 0) {
 				ss << ',';
 			}
-			ss << raw_fp_data[i];
+            if (g_signed) {
+                ss << static_cast<int32_t>(raw_fp_data[i]);
+            } else {
+                ss << raw_fp_data[i];
+            }
 		}
 		tmp_fp = ss.str();
 		fp = tmp_fp.c_str();
@@ -216,6 +245,8 @@ void PrintResult(ChromaprintContext *ctx, FFmpegAudioReader &reader, bool first,
 			printf("%s\n", fp);
 			break;
 	}
+
+	fflush(stdout);
 }
 
 double GetCurrentTimestamp() {
@@ -403,7 +434,7 @@ int fpcalc_main(int argc, char **argv) {
 		}
 	}
 
-	ChromaprintContext *chromaprint_ctx = chromaprint_new(CHROMAPRINT_ALGORITHM_DEFAULT);
+	ChromaprintContext *chromaprint_ctx = chromaprint_new(g_algorithm);
 	SCOPE_EXIT(chromaprint_free(chromaprint_ctx));
 
 	reader.SetOutputChannels(chromaprint_get_num_channels(chromaprint_ctx));

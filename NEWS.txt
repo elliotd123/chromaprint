@@ -1,3 +1,20 @@
+Version 1.5.0 -- April 15, 2020
+===============================
+
+ - Added support for fpcalc -raw -signed, which helps with easier PostgreSQL integration
+ - Added support for using libavresample instead of libswresample
+ - Fixed possible crash in chromaprint_decode_fingerprint
+ - Fixed unit tests on big endian CPUs
+
+Version 1.4.3 -- January 21, 2018
+==================================
+
+ - Allow one packet to have decoding error
+ - Print output even if there is a decoding error, exit with error code 3 instead of 2 in such case
+ - Add new option -ignore-errors to change the error code 3 to 0
+ - Add new option -algorithm NUM
+ - Periotically flush output when working on a stream
+
 Version 1.4.2 -- December 28, 2016
 ==================================
 
